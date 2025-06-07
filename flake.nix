@@ -3,12 +3,14 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     node16_nixpkgs.url = "github:NixOS/nixpkgs/nixos-22.05";
+    electron11_nixpkgs.url = "github:NixOS/nixpkgs/nixos-20.09";
     flake-utils.url = "github:numtide/flake-utils";
   };
   outputs = { self, nixpkgs, flake-utils, node16_nixpkgs, ... }@inputs:
     flake-utils.lib.eachDefaultSystem (system:
       let
         nodepkgs = import node16_nixpkgs { inherit system; };
+        electronpkgs = import inputs.electron11_nixpkgs { inherit system; };
         buildNode = nodepkgs.callPackage
           "${node16_nixpkgs}/pkgs/development/web/nodejs/nodejs.nix" {
             python = pkgs.python310;
@@ -20,7 +22,12 @@
         };
         pkgs = import nixpkgs {
           inherit system;
-          overlays = [ (final: prev: { nodejs = node16; }) ];
+          overlays = [
+            (final: prev: {
+              nodejs = node16;
+              electron_11 = electronpkgs.electron_11;
+            })
+          ];
         };
         buildInputs = with pkgs; [
           node16
@@ -55,7 +62,7 @@
       in {
         devShells = {
           default = pkgs.mkShell {
-            buildInputs = buildInputs;
+            buildInputs = buildInputs ++ [ pkgs.yarn2nix ];
             shellHook = ''
               export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${pkgs.xorg.libX11.out}/lib
               export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${pkgs.glib.out}/lib
@@ -84,7 +91,8 @@
             '';
           };
         };
-        packages.default = pkgs.stdenv.mkDerivation {
+        packages.default = import ./default.nix { inherit pkgs; };
+        packages.old = pkgs.stdenv.mkDerivation {
           name = "better-crew-link";
           src = ./.;
           buildInputs = buildInputs;
@@ -92,7 +100,7 @@
           # nativeBuildInputs = with pkgs; [ yarn ];
           installPhase = ''
             yarn install --offline
-            yarn dist
+            yarn dist --offline
           '';
         };
       });
