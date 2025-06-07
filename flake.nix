@@ -9,7 +9,6 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         nodepkgs = import node16_nixpkgs { inherit system; };
-        pkgs = import nixpkgs { inherit system; };
         buildNode = nodepkgs.callPackage
           "${node16_nixpkgs}/pkgs/development/web/nodejs/nodejs.nix" {
             python = pkgs.python310;
@@ -19,10 +18,13 @@
           version = "16.14.2";
           sha256 = "sha256-6SLiFcxo61+U0z6KC2HiyGO3cxzIYAq5VdOCLakP+NE=";
         };
+        pkgs = import nixpkgs {
+          inherit system;
+          overlays = [ (final: prev: { nodejs = node16; }) ];
+        };
         buildInputs = with pkgs; [
-          # nodepkgs.nodejs-16_x
           node16
-          nodepkgs.yarn
+          yarn
           python310Full
           python310Packages.pygobject3
           xorg.libX11
@@ -47,6 +49,8 @@
           libgbm
           alsa-lib
           cups.lib
+          glibc_multi.dev
+          gcc_multi
         ];
       in {
         devShells = {
@@ -75,6 +79,8 @@
               export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${pkgs.libgbm.out}/lib
               export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${pkgs.alsa-lib.out}/lib
               export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${pkgs.cups.lib}/lib
+              export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${pkgs.glibc_multi.dev}/lib
+              export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${pkgs.gcc_multi.out}/lib
             '';
           };
         };
@@ -85,7 +91,8 @@
 
           # nativeBuildInputs = with pkgs; [ yarn ];
           installPhase = ''
-            yarn install --frozen-lockfile --network-timeout 100000
+            yarn install --offline
+            yarn dist
           '';
         };
       });
