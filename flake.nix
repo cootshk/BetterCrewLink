@@ -30,10 +30,14 @@
           ];
         };
         buildInputs = with pkgs; [
+          # Binaries
           node16
           yarn
+          git
           python310Full
+          # Packages
           python310Packages.pygobject3
+          # Libraries
           xorg.libX11
           glib
           nss
@@ -91,17 +95,25 @@
             '';
           };
         };
-        packages.default = import ./default.nix { inherit pkgs; };
+        packages.default = import ./default.nix {
+          inherit pkgs;
+          inherit buildInputs;
+        };
         packages.old = pkgs.stdenv.mkDerivation {
           name = "better-crew-link";
           src = ./.;
           buildInputs = buildInputs;
-
-          # nativeBuildInputs = with pkgs; [ yarn ];
-          installPhase = ''
-            yarn install --offline
-            yarn dist --offline
+          buildPhase = ''
+            runHook preBuild
+            yarn --offline install
+            yarn --offline dist:linux
+            runHook postBuild
           '';
+          # nativeBuildInputs = with pkgs; [ yarn ];
+          # installPhase = ''
+          #   yarn --offline install
+          #   yarn --offline dist:linux
+          # '';
         };
       });
 }
