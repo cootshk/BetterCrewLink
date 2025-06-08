@@ -95,24 +95,21 @@
             '';
           };
         };
-        packages.old = import ./default.nix {
-          inherit pkgs;
-          inherit buildInputs;
-        };
         packages.default = pkgs.stdenv.mkDerivation {
           version = "3.1.3";
           name = "better-crew-link";
           pname = "better-crew-link";
+          src = ./.;
           yarnOfflineCache = pkgs.fetchYarnDeps {
             yarnLock = ./yarn.lock;
             hash = "sha256-pHkmgrtQDlb2YE7ORpAixMBfx1Qe9NbmXGIVWZiOu/8=";
           };
-          src = ./.;
           buildInputs = buildInputs;
+          env.ELECTRON_SKIP_BINARY_DOWNLOAD = "1";
           nativeBuildInputs = with pkgs; [
             yarnConfigHook
             yarnBuildHook
-            yarnInstallHook
+            # yarnInstallHook
             node16
           ];
           yarnBuildScript = "dist:linux";
@@ -122,6 +119,11 @@
             echo 9 > $HOME/.node-gyp/${node16.version}/installVersion
             ln -sfv ${node16}/include $HOME/.node-gyp/${node16.version}
             export npm_config_nodedir=${node16}
+          '';
+          installPhase = ''
+            runHook preInstall
+            cp -r dist/linux-unpacked/* $out
+            runHook postInstall
           '';
         };
       });
