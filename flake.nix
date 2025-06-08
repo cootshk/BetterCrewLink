@@ -95,11 +95,11 @@
             '';
           };
         };
-        packages.default = import ./default.nix {
+        packages.old = import ./default.nix {
           inherit pkgs;
           inherit buildInputs;
         };
-        packages.old = pkgs.stdenv.mkDerivation {
+        packages.default = pkgs.stdenv.mkDerivation {
           version = "3.1.3";
           name = "better-crew-link";
           pname = "better-crew-link";
