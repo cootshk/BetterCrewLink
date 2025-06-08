@@ -100,20 +100,29 @@
           inherit buildInputs;
         };
         packages.old = pkgs.stdenv.mkDerivation {
+          version = "3.1.3";
           name = "better-crew-link";
+          pname = "better-crew-link";
+          yarnOfflineCache = pkgs.fetchYarnDeps {
+            yarnLock = ./yarn.lock;
+            hash = "sha256-pHkmgrtQDlb2YE7ORpAixMBfx1Qe9NbmXGIVWZiOu/8=";
+          };
           src = ./.;
           buildInputs = buildInputs;
-          buildPhase = ''
-            runHook preBuild
-            yarn --offline install
-            yarn --offline dist:linux
-            runHook postBuild
+          nativeBuildInputs = with pkgs; [
+            yarnConfigHook
+            yarnBuildHook
+            yarnInstallHook
+            node16
+          ];
+          yarnBuildScript = "dist:linux";
+          yarnKeepDevDeps = true;
+          yarnPreBuild = ''
+            mkdir -p $HOME/.node-gyp/${node16.version}
+            echo 9 > $HOME/.node-gyp/${node16.version}/installVersion
+            ln -sfv ${node16}/include $HOME/.node-gyp/${node16.version}
+            export npm_config_nodedir=${node16}
           '';
-          # nativeBuildInputs = with pkgs; [ yarn ];
-          # installPhase = ''
-          #   yarn --offline install
-          #   yarn --offline dist:linux
-          # '';
         };
       });
 }
