@@ -95,36 +95,81 @@
             '';
           };
         };
-        packages.default = pkgs.stdenv.mkDerivation {
-          version = "3.1.3";
-          name = "better-crew-link";
-          pname = "better-crew-link";
-          src = ./.;
-          yarnOfflineCache = pkgs.fetchYarnDeps {
-            yarnLock = ./yarn.lock;
-            hash = "sha256-pHkmgrtQDlb2YE7ORpAixMBfx1Qe9NbmXGIVWZiOu/8=";
+        packages = let
+          electron-overlay-window = let
+            src = pkgs.fetchFromGitHub {
+              owner = "OhMyGuus";
+              repo = "electron-overlay-window";
+              rev = "0d44f21a972c5c1fb9063e5010c1e391861d92bf";
+              sha256 = "sha256-psHm06//6li928FTZOaAJmEaF8T6f+wQoxjR7qdWNwU=";
+            };
+          in pkgs.stdenv.mkDerivation {
+            version = "0.1.0";
+            name = "electron-overlay-window";
+            pname = "electron-overlay-window";
+            src = src;
+            buildInputs = with pkgs;
+              [ electron_11 node16 python310Full python310Packages.pygobject3 ]
+              ++ buildInputs;
+            nativeBuildInputs = with pkgs; [
+              yarnConfigHook
+              yarnBuildHook
+              node16
+            ];
+            yarnOfflineCache = pkgs.fetchYarnDeps {
+              yarnLock = "${src}/yarn.lock";
+              hash = "sha256-pgDKWD730Pe8OlXo1alT/E8Zx7yPqzOtnP/9Be8vTKA=";
+            };
+            yarnBuildScript = "build64";
+            yarnPreBuild = ''
+              mkdir -p $HOME/.node-gyp/${node16.version}
+              echo 9 > $HOME/.node-gyp/${node16.version}/installVersion
+              ln -sfv ${node16}/include $HOME/.node-gyp/${node16.version}
+              export npm_config_nodedir=${node16}
+              yarn prebuild
+            '';
+            outputHashMode = "recursive";
+            outputHash = pkgs.lib.fakeHash;
+            outputHashAlgo = "sha256";
+            installPhase = ''
+              runHook preInstall
+              cp -r dist/* $out
+              runHook postInstall
+            '';
           };
-          buildInputs = buildInputs;
-          env.ELECTRON_SKIP_BINARY_DOWNLOAD = "1";
-          nativeBuildInputs = with pkgs; [
-            yarnConfigHook
-            yarnBuildHook
-            # yarnInstallHook
-            node16
-          ];
-          yarnBuildScript = "dist:linux";
-          yarnKeepDevDeps = true;
-          yarnPreBuild = ''
-            mkdir -p $HOME/.node-gyp/${node16.version}
-            echo 9 > $HOME/.node-gyp/${node16.version}/installVersion
-            ln -sfv ${node16}/include $HOME/.node-gyp/${node16.version}
-            export npm_config_nodedir=${node16}
-          '';
-          installPhase = ''
-            runHook preInstall
-            cp -r dist/linux-unpacked/* $out
-            runHook postInstall
-          '';
+        in {
+          electron-overlay-window = electron-overlay-window;
+          default = pkgs.stdenv.mkDerivation {
+            version = "3.1.3";
+            name = "better-crew-link";
+            pname = "better-crew-link";
+            src = ./.;
+            yarnOfflineCache = pkgs.fetchYarnDeps {
+              yarnLock = ./yarn.lock;
+              hash = "sha256-pHkmgrtQDlb2YE7ORpAixMBfx1Qe9NbmXGIVWZiOu/8=";
+            };
+            buildInputs = buildInputs;
+            env.ELECTRON_SKIP_BINARY_DOWNLOAD = "1";
+            nativeBuildInputs = with pkgs; [
+              yarnConfigHook
+              yarnBuildHook
+              yarnInstallHook
+              node16
+            ];
+            yarnBuildScript = "dist:linux";
+            yarnKeepDevDeps = true;
+            yarnPreBuild = ''
+              mkdir -p $HOME/.node-gyp/${node16.version}
+              echo 9 > $HOME/.node-gyp/${node16.version}/installVersion
+              ln -sfv ${node16}/include $HOME/.node-gyp/${node16.version}
+              export npm_config_nodedir=${node16}
+            '';
+            installPhase = ''
+              runHook preInstall
+              cp -r dist/linux-unpacked/* $out
+              runHook postInstall
+            '';
+          };
         };
       });
 }
